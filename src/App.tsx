@@ -5,9 +5,11 @@ import './App.css';
 
 /**
  * State declaration for <App />
+ * showGraph: boolean value to determine if the graph should be shown or not.
  */
 interface IState {
-  data: ServerRespond[],
+  data: ServerRespond[];
+  showGraph: boolean;
 }
 
 /**
@@ -21,7 +23,9 @@ class App extends Component<{}, IState> {
     this.state = {
       // data saves the server responds.
       // We use this state to parse data down to the child element (Graph) as element property
+      // showGraph: default to false to not show the graph without clicking on the button.
       data: [],
+      showGraph: false,
     };
   }
 
@@ -29,7 +33,9 @@ class App extends Component<{}, IState> {
    * Render Graph react component with state.data parse as property data
    */
   renderGraph() {
-    return (<Graph data={this.state.data}/>)
+    if (this.state.showGraph) {
+      return <Graph data={this.state.data} />;
+    }
   }
 
   /**
@@ -39,7 +45,22 @@ class App extends Component<{}, IState> {
     DataStreamer.getData((serverResponds: ServerRespond[]) => {
       // Update the state by creating a new array of data that consists of
       // Previous data in the state and the new data from server
-      this.setState({ data: [...this.state.data, ...serverResponds] });
+      // Upon each interval, ping the server for data and update the state.
+      // if the interval is > 1000, clear the interval.
+      let x = 0;
+      const interval = setInterval(() => {
+        DataStreamer.getData((serverResponds: ServerRespond[]) => {
+          this.setState({
+            data: serverResponds,
+            showGraph: true,
+          });
+        });
+        x++;
+        if (x > 1000) {
+          clearInterval(interval);
+        }
+      }, 100);
+      //this.setState({ data: [...this.state.data, ...serverResponds] });
     });
   }
 
@@ -49,25 +70,25 @@ class App extends Component<{}, IState> {
   render() {
     return (
       <div className="App">
-        <header className="App-header">
-          Bank & Merge Co Task 2
-        </header>
+        <header className="App-header">Bank & Merge Co Task 2</header>
         <div className="App-content">
-          <button className="btn btn-primary Stream-button"
+          <button
+            className="btn btn-primary Stream-button"
             // when button is click, our react app tries to request
             // new data from the server.
             // As part of your task, update the getDataFromServer() function
             // to keep requesting the data every 100ms until the app is closed
             // or the server does not return anymore data.
-            onClick={() => {this.getDataFromServer()}}>
+            onClick={() => {
+              this.getDataFromServer();
+            }}
+          >
             Start Streaming Data
           </button>
-          <div className="Graph">
-            {this.renderGraph()}
-          </div>
+          <div className="Graph">{this.renderGraph()}</div>
         </div>
       </div>
-    )
+    );
   }
 }
 
